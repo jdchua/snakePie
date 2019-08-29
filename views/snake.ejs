@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>snakeJS</title>
+        <link rel="stylesheet" href="snake.css">
+        <link href="https://fonts.googleapis.com/css?family=Lexend+Peta&display=swap" rel="stylesheet">
+
+    </head>
+    <body>  
+
+            <img id="imgFood" hidden src="https://img.icons8.com/doodle/48/000000/strawberry-2.png">  
+            <img id="pie" hidden src="https://img.icons8.com/plasticine/100/000000/pie.png">                
+            <div id="overlay">
+                <div class="overlayContainer">
+                    <p>GAME OVER!</p>
+                    <div class="currentScore">
+                        <span id="score1">0</span>
+                        <img class="scoreFood" src="https://img.icons8.com/doodle/48/000000/strawberry-2.png">            
+                    </div>
+                    <div>
+                        <span class="highScore" id="highScore">0</span>
+                        <img src="https://img.icons8.com/color/48/000000/prize.png">
+                    </div>
+                    <a onclick="closeNow()" class="close">
+                        PLAY AGAIN!?
+                    </a>
+                </div>
+            </div>
+            <div id ="work">
+                <div id="score">
+                    <div class="currentScore">
+                        <span id="score2">0</span>
+                        <img class="scoreFood" src="https://img.icons8.com/doodle/48/000000/strawberry-2.png">            
+                    </div>
+                    <div>
+                        <span class="highScore" id="highScore1">0</span>
+                        <img src="https://img.icons8.com/color/48/000000/prize.png">
+                    </div>
+                </div>
+                <canvas id="gameCanvas" width="500" height="500"></canvas>
+            </div>
+        
+        <script>
+        
+            /** CONSTANTS **/
+            const CANVAS_BORDER_COLOUR='black';
+            const CANVAS_BACKGROUND_COLOUR="white";
+        
+            
+            // Get the canvas element
+            var gameCanvas = document.getElementById("gameCanvas");
+            // Return a two dimensional drawing context
+            var ctx = gameCanvas.getContext("2d");
+            
+            
+            //draw grid
+            const board = {
+              rows: 20,
+              columns: 20,
+              colors: {
+                light: '#a3cf53',
+                dark: '#abd55a'
+              }
+            }
+            
+            //change icon size
+        
+
+            
+            // snake drawing
+            let snake = [  {x: 150, y: 225},  {x: 125, y: 225},  {x: 100, y: 225},  {x: 75, y: 225},  {x: 50, y: 225},];
+            let dx = 25;
+            let dy = 0;
+            let score = 0;
+
+            
+            function clearCanvas() {
+                //  Select the colour to fill the canvas
+                // ctx.fillStyle = "rgba(0,0,0,.2)";
+                
+                if (sessionStorage.getItem("highScore") === null) {
+                    document.getElementById("highScore").innerHTML = "0";
+                    document.getElementById("highScore1").innerHTML = "0";
+                } else {
+                    document.getElementById("highScore").innerHTML = sessionStorage.getItem("highScore");
+                    document.getElementById("highScore1").innerHTML = sessionStorage.getItem("highScore");
+                }
+            
+
+                ctx.beginPath();
+                ctx.fillStyle = board.colors.dark;
+                ctx.rect(0, 0, gameCanvas.width, gameCanvas.height);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.fillStyle = board.colors.light;
+                for (let column = 0; column < board.columns; column++) {
+                  for (let row = 0; row < board.rows; row++) {
+                    if (row % 2 === 0 && column % 2 === 1 || row % 2 === 1 && column % 2 === 0) {
+                      ctx.rect(
+                        column * gameCanvas.width / board.columns,
+                        row * gameCanvas.height / board.rows,
+                        gameCanvas.width / board.columns,
+                        gameCanvas.height / board.rows
+                      );
+                    }
+                  }
+                }
+                ctx.fill();
+                
+                
+                
+                //  Select the colour for the border of the canvas
+                ctx.strokestyle = "black";
+                // Draw a "filled" rectangle to cover the entire canvas
+                // ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+                // Draw a "border" around the entire canvas
+                ctx.strokeRect(0, 0, gameCanvas.width, gameCanvas.height);
+            };
+
+
+            
+            function drawSnakePart(snakePart) {  
+                var pie = document.getElementById("pie");
+                ctx.drawImage(pie, snakePart.x, snakePart.y, 25, 25)
+            }
+            
+            //generate random food
+            function randomTen(min, max) {  
+                return Math.round((Math.random() * (max-min) + min) / 25) * 25;
+            }   
+            
+            function createFood() {  
+                foodX = randomTen(0, gameCanvas.width - 25); // - 10  
+                foodY = randomTen(0, gameCanvas.height - 25); // - 10
+                snake.forEach(function isFoodOnSnake(part) {    
+                    const foodIsOnSnake = part.x == foodX && part.y == foodY;   
+                    if (foodIsOnSnake) {    
+                        createFood();
+                    }
+                });
+            }
+            
+            function drawFood() { 
+                var imgFood = document.getElementById("imgFood");
+                ctx.drawImage(imgFood, foodX, foodY, 25, 25)
+            }
+              
+            
+            
+            // changing direction with key is pressed
+            function changeDirection(event) {  
+                const LEFT_KEY = 37;  
+                const RIGHT_KEY = 39;  
+                const UP_KEY = 38;  
+                const DOWN_KEY = 40;
+                if (changingDirection) {
+                    return;
+                }
+                changingDirection = true;
+                const keyPressed = event.keyCode;  
+                const goingUp = dy === -25;  // -10
+                const goingDown = dy === 25;  // 10
+                const goingRight = dx === 25;  // 10
+                const goingLeft = dx === -25;  // -10
+                if (keyPressed === LEFT_KEY && !goingRight) {    
+                    dx = -25;  // -10  
+                    dy = 0;  
+                } else if (keyPressed === UP_KEY && !goingDown) {   
+                    dx = 0;    
+                    dy = -25;  // -15
+                } else if (keyPressed === RIGHT_KEY && !goingLeft) {    
+                    dx = 25;    // 15
+                    dy = 0;  
+                } else if (keyPressed === DOWN_KEY && !goingUp) {    
+                    dx = 0;    
+                    dy = 25;  // 15
+                }
+            };
+            
+            
+            function closeNow() {
+                location.reload();
+
+            }
+        
+            
+            function drawSnake() {  
+                snake.forEach(drawSnakePart);
+            }
+            
+            //move snake
+            function advanceSnake() {  
+                const head = {
+                    x: snake[0].x + dx, 
+                    y: snake[0].y + dy
+                };
+                snake.unshift(head);
+                const didEatFood = snake[0].x === foodX && snake[0].y === foodY;  
+                if (didEatFood) {  
+                    score += 1;    
+                    document.getElementById('score1').innerHTML = score;
+                    document.getElementById('score2').innerHTML = score;
+                    createFood();  
+                } else {    
+                    snake.pop();  
+                }
+            }
+        
+            
+            function didGameEnd() {  
+                for (let i = 4; i < snake.length; i++) {    
+                    if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+                        return true;
+                    }
+                }
+                
+                const hitLeftWall = snake[0].x < 0;  
+                const hitRightWall = snake[0].x > gameCanvas.width - 25;  // - 15
+                const hitToptWall = snake[0].y < 0;  
+                const hitBottomWall = snake[0].y > gameCanvas.height - 25; // - 15
+                
+                return hitLeftWall || hitRightWall || hitToptWall || hitBottomWall
+            }
+
+
+            
+            function main() {  
+                if (didGameEnd()) {
+                    
+                    $("#overlay").show();
+                    $("#work").css({ opacity: 0.2 });
+                    
+                                        
+                    if (typeof(Storage) !== "undefined") {
+                        if (score > sessionStorage.getItem("highScore")) {
+                            sessionStorage.setItem("highScore", score);
+                            document.getElementById("highScore").innerHTML = sessionStorage.getItem("highScore");
+                        }
+                    } else {
+                      document.getElementById("highScore").innerHTML = "Sorry, your browser does not support Web Storage...";
+                    }
+                    return;
+                }
+                
+                setTimeout(function onTick() {
+                    changingDirection = false; 
+                    clearCanvas(); 
+                    drawFood();
+                    advanceSnake();    
+                    drawSnake();
+                    main();  
+                }, 110)
+            };
+            
+            main();
+            
+            createFood();
+            
+            document.addEventListener("keydown", changeDirection);
+
+        </script>
+        
+        <script
+          src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+          integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8="
+          crossorigin="anonymous">
+        </script>
+    </body>
+</html>
